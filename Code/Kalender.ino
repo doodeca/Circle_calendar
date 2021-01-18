@@ -2,20 +2,20 @@
 #include <Stepper.h>
 #include <RTClib.h>
 
-RTC_DS3231 rtc;        // de RTC module maakt gebruik van een DS3231
+RTC_DS3231 rtc;        // RTC module uses DS3231
 
-#define OMWENTELING 2038  // aantal stappen dat de uitgaande as eenmaal rond laat draaien
+#define OMWENTELING 2038  // number of steps needed to make one revolution
 
-#define HALL_dagNummer 3  // HALL_0, U2, RV2
-#define HALL_maandNaam 4  // HALL_1, U1, RV1
+#define HALL_dagNummer 3  // schematic: HALL_0, on PCB: U2, RV2
+#define HALL_maandNaam 4  // schematic: HALL_1, on PCB: U1, RV1
 
 const int COUNTERCLOCKWISE = -1;
 
-// stepper sequence = oranje, paars, geel, blauw
+// stepper sequence = orange, purple, yellow, blue
 Stepper dagNummer = Stepper(OMWENTELING, 12, 10, 11, 9);  // STEPPER 0
 Stepper maandNaam = Stepper(OMWENTELING, 5, 7, 6, 8);     // STEPPER_1
 
-// struct voor het bijhouden van huidige en komende dag
+// struct for keeping this and next day
 typedef struct {
   uint8_t Nummer;
   uint8_t Maand;
@@ -28,10 +28,10 @@ typedef struct {
 void setup() {
   rtc.begin();
   
-// Uncomment om tijd in RTC in te stellen
+// Uncomment to set RTC date/time
   // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
   
-// huidige tijd ophalen uit RTC
+// get current time from RTC
   DateTime now  = rtc.now();
   datum.Nummer  = now.day();
   datum.Maand   = now.month();
@@ -39,23 +39,22 @@ void setup() {
   pinMode(HALL_dagNummer, INPUT_PULLUP);
   pinMode(HALL_maandNaam, INPUT_PULLUP);
   
-// snelheid stappenmotoren instellen
+// set stepper speed
   dagNummer.setSpeed(15);
   maandNaam.setSpeed(15);
 }
 
 void loop(){
-  // huidige dag ophalen
+  // get current day
   DateTime now = rtc.now();
   datum.volgendNummer = now.day();
   
   if(datum.volgendNummer != datum.Nummer){
-    // als datum veranderd is
+    // if the date has changed
     datum.volgendMaand = now.month();
     
-    // als een nieuwe maand begint, nummer ring verder doorschuiven
-    if(datum.volgendNummer == 1 && datum.Nummer >= 28){
-      int aantal_plekken = 31 - datum.Nummer; // aantal nummers dat doorgeschoven moeten worden
+    if(datum.volgendNummer == 1 && datum.Nummer >= 28){    // if the new month started
+      int aantal_plekken = 31 - datum.Nummer;    // number of places that should be skipped
       
       while(aantal_plekken != 0){
         int bewegen = 1;
@@ -68,7 +67,7 @@ void loop(){
               maandNaam.step(COUNTERCLOCKWISE);
             }
             aantal_plekken--;
-            bewegen = 0; // wanneer hall sensor hoog is
+            bewegen = 0; 
           }
         }
       }
@@ -84,14 +83,14 @@ void loop(){
           while(digitalRead(HALL_maandNaam) == LOW){
             maandNaam.step(COUNTERCLOCKWISE);
           }
-          bewegen = 0; // wanneer hall sensor hoog is
+          bewegen = 0; 
         }
       }
     }
   }
-  // variabelen resetten
+  // reset variables
   datum.Nummer = datum.volgendNummer;
   datum.Maand  = datum.volgendMaand;
   
-  LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);   // sleep voor 8 seconden
+  LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);   // sleep for 8 seconds
 }
